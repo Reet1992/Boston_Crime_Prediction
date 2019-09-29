@@ -6,29 +6,6 @@ data2 <- data
 head(data2)
 
 
-
-data2$tally = rep(1, times = nrow(data2))
-data2$tally = rep(NA, times = 100)
-for(i in 1:length(table(data2$OFFENSE_CODE_GROUP)))
-  {
-  
-  
-  dat = data2 %>%
-    filter(OFFENSE_CODE_GROUP == unique(data2$OFFENSE_CODE_GROUP)[i])
-  
-   dat = dat %>%
-  mutate(tally = offense_table_sorted[which(offense_table_sorted$Var1 == unique(data2$OFFENSE_CODE_GROUP)[i]), 3]) 
-  
-   data2[which(data2$OFFENSE_CODE_GROUP == unique(data2$OFFENSE_CODE_GROUP)[i]),]$tally = as.character(dat$tally)
-     
-   
-  
-  }
-
-
-  sum(dat$tally) #Insert any factor level, and sum to view total frequency
-
-
 View(dat)
 
 offense_table <- table(data$OFFENSE_CODE_GROUP)
@@ -61,6 +38,31 @@ nv <- mutate(nv,violation_level = 'noviolation')
 group_crime <- rbind(sv,mv,lv,nv)
 offense_table_sorted <- merge.data.frame(group_crime,offense_table)
 
+
+
+####make the tally column########
+
+
+data2$tally = rep(1, times = nrow(data2))
+data2$tally = rep(NA, times = 100)
+for(i in 1:length(table(data2$OFFENSE_CODE_GROUP)))
+{
+  
+  
+  dat = data2 %>%
+    filter(OFFENSE_CODE_GROUP == unique(data2$OFFENSE_CODE_GROUP)[i])
+  
+  dat = dat %>%
+    mutate(tally = offense_table_sorted[which(offense_table_sorted$Var1 == unique(data2$OFFENSE_CODE_GROUP)[i]), 3]) 
+  
+  data2[which(data2$OFFENSE_CODE_GROUP == unique(data2$OFFENSE_CODE_GROUP)[i]),]$tally = as.character(dat$tally)
+  
+  
+  
+}
+
+
+sum(dat$tally) #Insert any factor level, and sum to view total frequency
 
 ##### find the frequncy of violation VS levelof violation in the Boston
 
@@ -127,3 +129,52 @@ ggplot(friday_data, aes(x = friday_data$HOUR, color = friday_data$tally)) + geom
       facet_grid(friday_data$YEAR)
 
 ########weekly and Friday########most occurence hourly crime timeline
+
+
+
+
+
+######form a Decision Tree Predictor Model###########
+
+
+set.seed(1234)
+
+
+#partition data into test and validate
+
+pd <- sample(2,nrow(data2_copy),replace = TRUE,prob = c(0.85,0.15))
+train2 <- data2_copy[pd==1,]
+validate2 <- data2_copy[pd==2,]
+
+library(partykit)
+
+####Building the tree#######
+
+tree <- ctree(tally~DAY_OF_WEEK+HOUR,data = train2, control = ctree_control(mincriterion = 0.999,minsplit = 50000))
+tree
+plot(tree) 
+
+#####make the prediction of the tree with the test/validate data######
+
+predict(tree,validate2,type = "prob")
+
+#####Create the confusion matrix#######
+
+tab <- table(predict(tree),train2$tally)
+
+print(tab)
+
+1-sum(diag(tab))/sum(tab)
+
+
+
+######Decision Tree with rpart#######
+
+library(rpart)
+tree2 <- rpart(OFFENSE_CODE_GROUP~DAY_OF_WEEK+HOUR,train2)
+library(rpart.plot)
+rpart.plot(tree2)
+
+plot(tree2)
+
+
