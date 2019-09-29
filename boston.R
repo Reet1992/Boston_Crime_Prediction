@@ -120,8 +120,10 @@ Friday_data_crime_group_order <- arrange(Friday_data_crime_group,desc(Freq))
 
 #######################################################################################
 
+ggplot(data2, aes(x = data2$HOUR, color = data2$tally)) + geom_density() +
+  facet_grid(data2$YEAR)
 
+ggplot(friday_data, aes(x = friday_data$HOUR, color = friday_data$tally)) + geom_density() +
+      facet_grid(friday_data$YEAR)
 
-
-
-
+########weekly and Friday########most occurence hourly crime timeline
